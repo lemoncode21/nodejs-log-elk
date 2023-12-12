@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.0
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  filebeat:
+    build:
+        context: ./filebeat
+    container_name: filebeat
+    command: filebeat -e -strict.perms=false
+    volumes:
+        - ./nodejs-logs:/src/logs
+    depends_on:
+        - elasticsearch
+        - kibana
+
+  nodejs-app:
+    build:
+      context: ./nodejs-app 
+      dockerfile: Dockerfile
+    container_name: nodejs-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - elasticsearch
+    volumes:
+        - ./nodejs-logs:/src/logs
+
+volumes:
+    elasticsearch_data:
+        driver: local
